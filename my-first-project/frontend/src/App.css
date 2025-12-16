@@ -1,0 +1,152 @@
+.App {
+  text-align: left;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+/* Desktop-optimized styles */
+@media (min-width: 1200px) {
+  .container-fluid {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+  
+  .hero-section {
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-section {
+    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 3rem;
+  }
+}
+
+/* Enhanced card hover effects for desktop */
+@media (min-width: 992px) {
+  .card {
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  
+  .card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(102, 126, 234, 0.15);
+  }
+}
+
+/* Better spacing for desktop */
+@media (min-width: 768px) {
+  .row.g-4 > * {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .pagination {
+    --bs-pagination-padding-x: 1rem;
+    --bs-pagination-padding-y: 0.75rem;
+    --bs-pagination-font-size: 1.1rem;
+  }
+}
+
+/* Improved typography for larger screens */
+@media (min-width: 1400px) {
+  h1, .display-3 {
+    font-size: 4rem;
+  }
+  
+  .lead {
+    font-size: 1.5rem;
+  }
+  
+  .btn-lg {
+    padding: 0.75rem 2rem;
+    font-size: 1.2rem;
+  }
+}
+
+/* Form controls for desktop */
+.form-control:focus, .form-select:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+/* Custom scrollbar for desktop */
+@media (min-width: 992px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #667eea, #764ba2);
+    border-radius: 5px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #5a6fd6, #6b429a);
+  }
+}
+
+/* Smooth animations */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Better focus states for accessibility */
+.btn:focus, .form-control:focus, .form-select:focus {
+  outline: none;
+}
+
+/* Card body text improvements */
+.card-body {
+  font-size: 1rem;
+}
+
+@media (min-width: 1200px) {
+  .card-body {
+    font-size: 1.05rem;
+  }
+}
+
+/* Dropdown menu improvements for desktop */
+.dropdown-menu {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Badge improvements */
+.badge {
+  font-weight: 500;
+}
+
+/* Alert improvements */
+.alert {
+  border-radius: 12px;
+  border: none;
+}
+
+/* Footer spacing for desktop */
+@media (min-width: 992px) {
+  .container-fluid {
+    min-height: calc(100vh - 70px);
+  }
+}
