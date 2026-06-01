@@ -74,7 +74,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files
-app.use('/uploads', express.static('uploads'));
+// Configurable uploads directory (can be mounted to persistent storage on Railway)
+const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+// Ensure uploads dir exists
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+} catch (err) {
+  console.error('Could not create uploads directory:', err);
+}
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 // Serve React build files only when the frontend has been built
 const frontendBuildPath = path.join(__dirname, 'frontend', 'build');
