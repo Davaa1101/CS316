@@ -309,18 +309,18 @@ const itemSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      'electronics',
-      'clothing',
-      'books',
-      'home_garden',
-      'sports_outdoors',
-      'toys_games',
-      'collectibles',
-      'automotive',
-      'music_instruments',
-      'art_crafts',
-      'tools',
-      'other'
+      'Электроник',
+      'хувцас',
+      'номнууд',
+      'гэр_гарцын',
+      'спорт_гарцын',
+      'тоглоом_тоглоомын',
+      'Цуглуулга',
+      'Автомашины',
+      'Хөгжим_хэрэгсэл',
+      'Урлаг_гараар_хийсэн',
+      'Багаж хэрэгсэл',
+      'Бусад'
     ]
   },
   condition: {
@@ -360,19 +360,19 @@ const itemSchema = new mongoose.Schema({
     categories: [{
       type: String,
       enum: [
-        'electronics',
-        'clothing',
-        'books',
-        'home_garden',
-        'sports_outdoors',
-        'toys_games',
-        'collectibles',
-        'automotive',
-        'music_instruments',
-        'art_crafts',
-        'tools',
-        'other'
-      ]
+      'Электроник',
+      'хувцас',
+      'номнууд',
+      'гэр_гарцын',
+      'спорт_гарцын',
+      'тоглоом_тоглоомын',
+      'Цуглуулга',
+      'Автомашины',
+      'Хөгжим_хэрэгсэл',
+      'Урлаг_гараар_хийсэн',
+      'Багаж хэрэгсэл',
+      'Бусад'
+    ]
     }]
   },
   status: {

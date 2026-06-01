@@ -138,9 +138,9 @@ router.post('/', auth, upload.any(), [
   body('title').trim().isLength({ min: 3, max: 100 }),
   body('description').trim().isLength({ min: 10, max: 1000 }),
   body('category').isIn([
-    'electronics', 'clothing', 'books', 'home_garden', 'sports_outdoors',
-    'toys_games', 'collectibles', 'automotive', 'music_instruments', 
-    'art_crafts', 'tools', 'other'
+    'Электроник', 'хувцас', 'номнууд', 'гэр_гарцын', 'спорт_гарцын',
+    'тоглоом_тоглоомын', 'Цуглуулга', 'Автомашины', 'Хөгжим_хэрэгсэл',
+    'Урлаг_гараар_хийсэн', 'Багаж хэрэгсэл', 'Бусад'
   ]),
   body('condition').isIn(['new', 'like_new', 'good', 'fair', 'poor']),
   body('location.city').trim().isLength({ min: 1 }),
@@ -205,9 +205,9 @@ router.put('/:id', auth, upload.any(), [
   body('title').optional().trim().isLength({ min: 3, max: 100 }),
   body('description').optional().trim().isLength({ min: 10, max: 1000 }),
   body('category').optional().isIn([
-    'electronics', 'clothing', 'books', 'home_garden', 'sports_outdoors',
-    'toys_games', 'collectibles', 'automotive', 'music_instruments', 
-    'art_crafts', 'tools', 'other'
+    'Электроник', 'хувцас', 'номнууд', 'гэр_гарцын', 'спорт_гарцын',
+    'тоглоом_тоглоомын', 'Цуглуулга', 'Автомашины', 'Хөгжим_хэрэгсэл',
+    'Урлаг_гараар_хийсэн', 'Багаж хэрэгсэл', 'Бусад'
   ]),
   body('condition').optional().isIn(['new', 'like_new', 'good', 'fair', 'poor'])
 ], async (req, res) => {
