@@ -1,7 +1,4 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { body, validationResult, query } = require('express-validator');
 const Offer = require('../models/Offer');
 const Item = require('../models/Item');
@@ -9,46 +6,14 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { Chat } = require('../models/index');
 const { auth } = require('../middleware/auth');
+const { createUpload } = require('../config/cloudinary');
 
 const router = express.Router();
 
 const createNotification = async ({ user, type, title, message, link = '', offer }) => {
   return Notification.create({ user, type, title, message, link, offer });
 };
-
-// Configure multer for offer images
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = 'uploads/offers';
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 10 // Maximum 10 files for multiple offered items
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Зөвхөн зургийн файл зөвшөөрнө'));
-    }
-  }
-});
+const upload = createUpload('offers');
 
 // Create new offer
 router.post('/', auth, upload.array('images', 10), [
@@ -81,9 +46,6 @@ router.post('/', auth, upload.array('images', 10), [
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       // Clean up uploaded files
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(400).json({ 
         message: 'Шалгалт амжилтгүй', 
         errors: errors.array() 
@@ -95,17 +57,11 @@ router.post('/', auth, upload.array('images', 10), [
     // Check if item exists and is active
     const item = await Item.findById(itemId).populate('owner');
     if (!item || item.status !== 'active') {
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(404).json({ message: 'Зар олдсонгүй эсвэл идэвхгүй болсон' });
     }
 
     // Check if user is not the owner of the item
     if (item.owner._id.toString() === req.user.userId) {
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(400).json({ message: 'Өөрийн зар дээр санал тавих боломжгүй' });
     }
 
@@ -117,9 +73,6 @@ router.post('/', auth, upload.array('images', 10), [
     });
 
     if (existingOffer) {
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(400).json({ message: 'Та энэ зар дээр аль хэдийн хүлээгдэж буй саналтай байна' });
     }
 
@@ -132,7 +85,7 @@ router.post('/', auth, upload.array('images', 10), [
       for (let i = 0; i < imagesPerItem && imageIndex < (req.files?.length || 0); i++) {
         const file = req.files[imageIndex];
         itemImages.push({
-          url: `/uploads/offers/${file.filename}`,
+          url: file.path,
           filename: file.filename
         });
         imageIndex++;
@@ -176,9 +129,6 @@ router.post('/', auth, upload.array('images', 10), [
   } catch (error) {
     console.error('Create offer error:', error);
     // Clean up uploaded files
-    if (req.files) {
-      req.files.forEach(file => fs.unlink(file.path, () => {}));
-    }
     res.status(500).json({ message: 'Санал үүсгэх үед серверийн алдаа гарлаа', details: error.message });
   }
 });

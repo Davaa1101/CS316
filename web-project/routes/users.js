@@ -1,48 +1,14 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { body, validationResult, query } = require('express-validator');
 const User = require('../models/User');
 const Item = require('../models/Item');
 const Offer = require('../models/Offer');
 const { auth } = require('../middleware/auth');
+const { createUpload } = require('../config/cloudinary');
 
 const router = express.Router();
 
-// Configure multer for profile images
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = 'uploads/profiles';
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB limit
-    files: 1
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Зөвхөн зургийн файл зөвшөөрнө'));
-    }
-  }
-});
+const upload = createUpload('profiles');
 
 // Get user profile
 router.get('/profile', auth, async (req, res) => {
@@ -51,7 +17,6 @@ router.get('/profile', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'Хэрэглэгч олдсонгүй' });
     }
-
     res.json(user);
   } catch (error) {
     console.error('Get profile error:', error);
@@ -71,10 +36,6 @@ router.put('/profile', auth, upload.single('avatar'), [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Clean up uploaded file if validation fails
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
       return res.status(400).json({ 
         message: 'Шалгалт амжилтгүй', 
         errors: errors.array() 
@@ -83,9 +44,6 @@ router.put('/profile', auth, upload.single('avatar'), [
 
     const user = await User.findById(req.user.userId);
     if (!user) {
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
-      }
       return res.status(404).json({ message: 'Хэрэглэгч олдсонгүй' });
     }
 
@@ -114,20 +72,13 @@ router.put('/profile', auth, upload.single('avatar'), [
       user.preferences.notifications.newOffers = req.body['preferences.notifications.newOffers'];
     }
 
-    // Handle avatar upload
+    // Handle avatar upload — Cloudinary URL directly
     if (req.file) {
-      // Delete old avatar if exists
-      if (user.profile.avatar) {
-        const oldAvatarPath = path.join(__dirname, '..', user.profile.avatar);
-        fs.unlink(oldAvatarPath, () => {});
-      }
-      
-      user.profile.avatar = `/uploads/profiles/${req.file.filename}`;
+      user.profile.avatar = req.file.path;
     }
 
     await user.save();
 
-    // Return updated user without password
     const updatedUser = await User.findById(req.user.userId).select('-password');
     
     res.json({
@@ -136,10 +87,6 @@ router.put('/profile', auth, upload.single('avatar'), [
     });
   } catch (error) {
     console.error('Update profile error:', error);
-    // Clean up uploaded file
-    if (req.file) {
-      fs.unlink(req.file.path, () => {});
-    }
     res.status(500).json({ message: 'Профайл шинэчлэх үед серверийн алдаа гарлаа', details: error.message });
   }
 });
@@ -175,17 +122,13 @@ router.get('/items', auth, [
 
     const total = await Item.countDocuments(filter);
 
-    // Get offer counts for each item
     const itemsWithOffers = await Promise.all(
       items.map(async (item) => {
         const offerCount = await Offer.countDocuments({ 
           item: item._id, 
           status: 'pending' 
         });
-        return {
-          ...item.toObject(),
-          pendingOffers: offerCount
-        };
+        return { ...item.toObject(), pendingOffers: offerCount };
       })
     );
 
@@ -258,7 +201,6 @@ router.get('/dashboard', auth, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Get counts
     const [
       activeItems,
       totalItems,
@@ -276,7 +218,6 @@ router.get('/dashboard', auth, async (req, res) => {
       })
     ]);
 
-    // Get recent activity (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     
     const recentActivity = {
@@ -294,7 +235,6 @@ router.get('/dashboard', auth, async (req, res) => {
       })
     };
 
-    // Get pending actions
     const pendingActions = {
       offersToReview: await Offer.countDocuments({ 
         offeredTo: userId, 
@@ -304,19 +244,13 @@ router.get('/dashboard', auth, async (req, res) => {
         owner: userId,
         status: 'active',
         expiresAt: { 
-          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // expires in 7 days
+          $lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
       })
     };
 
     res.json({
-      stats: {
-        activeItems,
-        totalItems,
-        sentOffers,
-        receivedOffers,
-        completedTrades
-      },
+      stats: { activeItems, totalItems, sentOffers, receivedOffers, completedTrades },
       recentActivity,
       pendingActions
     });
@@ -353,13 +287,11 @@ router.post('/change-password', auth, [
       return res.status(404).json({ message: 'Хэрэглэгч олдсонгүй' });
     }
 
-    // Check current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: 'Одоогийн нууц үг буруу байна' });
     }
 
-    // Update password
     user.password = newPassword;
     await user.save();
 
@@ -392,43 +324,16 @@ router.delete('/account', auth, [
       return res.status(404).json({ message: 'Хэрэглэгч олдсонгүй' });
     }
 
-    // Verify password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Нууц үг буруу байна' });
     }
 
-    // Delete user's items and their images
-    const userItems = await Item.find({ owner: userId });
-    for (const item of userItems) {
-      // Delete item images
-      item.images.forEach(image => {
-        const imagePath = path.join(__dirname, '..', image.url);
-        fs.unlink(imagePath, () => {});
-      });
-      
-      await Item.findByIdAndDelete(item._id);
-    }
+    // Delete user's items
+    await Item.deleteMany({ owner: userId });
 
-    // Delete user's offers and their images
-    const userOffers = await Offer.find({ offeredBy: userId });
-    for (const offer of userOffers) {
-      // Delete offer images
-      offer.offeredItems.forEach(item => {
-        item.images.forEach(image => {
-          const imagePath = path.join(__dirname, '..', image.url);
-          fs.unlink(imagePath, () => {});
-        });
-      });
-      
-      await Offer.findByIdAndDelete(offer._id);
-    }
-
-    // Delete profile avatar
-    if (user.profile.avatar) {
-      const avatarPath = path.join(__dirname, '..', user.profile.avatar);
-      fs.unlink(avatarPath, () => {});
-    }
+    // Delete user's offers
+    await Offer.deleteMany({ offeredBy: userId });
 
     // Delete user account
     await User.findByIdAndDelete(userId);
@@ -453,16 +358,12 @@ router.get('/:id/public', async (req, res) => {
       return res.status(404).json({ message: 'Хэрэглэгч олдсонгүй' });
     }
 
-    // Get user's active items count
     const activeItemsCount = await Item.countDocuments({ 
       owner: id, 
       status: 'active' 
     });
 
-    res.json({
-      ...user,
-      activeItemsCount
-    });
+    res.json({ ...user, activeItemsCount });
   } catch (error) {
     console.error('Get public profile error:', error);
     res.status(500).json({ message: 'Серверийн алдаа', details: error.message });
@@ -488,19 +389,13 @@ router.get('/:id/items', [
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
-    const items = await Item.find({ 
-      owner: id, 
-      status: 'active' 
-    })
-    .populate('owner', 'name location.city location.district profile.rating')
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .skip(skip);
+    const items = await Item.find({ owner: id, status: 'active' })
+      .populate('owner', 'name location.city location.district profile.rating')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(skip);
 
-    const total = await Item.countDocuments({ 
-      owner: id, 
-      status: 'active' 
-    });
+    const total = await Item.countDocuments({ owner: id, status: 'active' });
 
     res.json({
       items,

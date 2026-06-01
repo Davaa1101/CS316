@@ -1,49 +1,13 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { body, validationResult, query } = require('express-validator');
 const Item = require('../models/Item');
 const User = require('../models/User');
 const { Category } = require('../models/index');
 const { auth, optionalAuth } = require('../middleware/auth');
+const { createUpload } = require('../config/cloudinary');
 
 const router = express.Router();
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const baseUploads = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploads');
-    const uploadPath = path.join(baseUploads, 'items');
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 5 // Maximum 5 files
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Зөвхөн зургийн файл зөвшөөрнө'));
-    }
-  }
-});
+const upload = createUpload('items');
 
 // Get all items with filtering and pagination
 router.get('/', [
@@ -226,15 +190,10 @@ router.post('/', auth, upload.array('images', 5), [
     const { title, description, category, condition } = req.body;
 
     // Process uploaded images and save public URLs
-    const images = req.files ? req.files.map(file => {
-      const fileUrl = `/uploads/items/${file.filename}`;
-      const backendBase = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-      const publicUrl = `${backendBase.replace(/\/$/, '')}${fileUrl}`;
-      return {
-        url: publicUrl,
-        filename: file.filename
-      };
-    }) : [];
+    const images = req.files ? req.files.map(file => ({
+  url: file.path,         // Cloudinary URL
+  filename: file.filename
+})) : [];
 
     // Reconstruct nested objects from flattened request body
     const location = {
@@ -337,12 +296,10 @@ router.put('/:id', auth, upload.array('newImages', 5), [
 
     // Handle image updates
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map(file => {
-        const fileUrl = `/uploads/items/${file.filename}`;
-        const backendBase = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-        const publicUrl = `${backendBase.replace(/\/$/, '')}${fileUrl}`;
-        return { url: publicUrl, filename: file.filename };
-      });
+      const newImages = req.files.map(file => ({
+  url: file.path,
+  filename: file.filename
+}));
       
       // Add new images to existing ones (up to 5 total)
       const totalImages = [...item.images, ...newImages];
@@ -394,16 +351,7 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Энэ зарыг устгах эрхгүй' });
     }
 
-    // Delete associated images
-    item.images.forEach(image => {
-      try {
-        const urlPath = image.url.startsWith('http') ? new URL(image.url).pathname : image.url;
-        const filePath = path.join(__dirname, '..', urlPath);
-        fs.unlink(filePath, () => {});
-      } catch (e) {
-        // ignore invalid URL
-      }
-    });
+
 
     await Item.findByIdAndDelete(req.params.id);
 

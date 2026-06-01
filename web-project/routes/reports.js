@@ -1,7 +1,4 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { body, validationResult, query } = require('express-validator');
 const Report = require('../models/Report');
 const User = require('../models/User');
@@ -9,6 +6,7 @@ const Item = require('../models/Item');
 const Offer = require('../models/Offer');
 const Notification = require('../models/Notification');
 const { auth, adminAuth } = require('../middleware/auth');
+const { createUpload } = require('../config/cloudinary');
 
 const router = express.Router();
 
@@ -16,39 +14,7 @@ const createNotification = async ({ user, type, title, message, link = '', offer
   return Notification.create({ user, type, title, message, link, offer });
 };
 
-// Configure multer for evidence uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = 'uploads/reports';
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'evidence-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 5 // Maximum 5 evidence files
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|txt/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype === 'application/pdf' || file.mimetype === 'text/plain';
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Зөвхөн зураг, PDF, текст файл зөвшөөрнө'));
-    }
-  }
-});
+const upload = createUpload('reports');
 
 // Create new report
 router.post('/', auth, upload.array('evidence', 5), [
@@ -69,10 +35,6 @@ router.post('/', auth, upload.array('evidence', 5), [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Clean up uploaded files
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(400).json({ 
         message: 'Шалгалт амжилтгүй', 
         errors: errors.array() 
@@ -96,9 +58,6 @@ router.post('/', auth, upload.array('evidence', 5), [
     }
 
     if (!targetExists) {
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(404).json({ message: 'Мэдээлсэн объект олдсонгүй' });
     }
 
@@ -111,9 +70,6 @@ router.post('/', auth, upload.array('evidence', 5), [
     });
 
     if (existingReport) {
-      if (req.files) {
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-      }
       return res.status(400).json({ 
         message: 'Та энэ зүйлийг өмнө нь мэдээлсэн байна. Шалгагдахыг хүлээнэ үү.' 
       });
@@ -121,7 +77,7 @@ router.post('/', auth, upload.array('evidence', 5), [
 
     // Process uploaded evidence
     const evidence = req.files ? req.files.map(file => ({
-      url: `/uploads/reports/${file.filename}`,
+      url: file.path,
       filename: file.filename
     })) : [];
 
@@ -178,10 +134,6 @@ router.post('/', auth, upload.array('evidence', 5), [
     });
   } catch (error) {
     console.error('Create report error:', error);
-    // Clean up uploaded files
-    if (req.files) {
-      req.files.forEach(file => fs.unlink(file.path, () => {}));
-    }
     res.status(500).json({ message: 'Гомдол илгээх үед серверийн алдаа гарлаа', details: error.message });
   }
 });
@@ -215,7 +167,7 @@ router.get('/my-reports', auth, [
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(skip)
-      .select('-chatHistory'); // Exclude sensitive chat history from list
+      .select('-chatHistory');
 
     const total = await Report.countDocuments(filter);
 
@@ -248,7 +200,6 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Гомдол олдсонгүй' });
     }
 
-    // Check if user owns this report or is admin
     if (report.reportedBy._id.toString() !== req.user.userId && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Энэ гомдлыг харах эрхгүй' });
     }
@@ -289,7 +240,6 @@ router.get('/admin/all', auth, adminAuth, [
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    // Build filter
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
     if (req.query.reportType) filter.reportType = req.query.reportType;
@@ -304,20 +254,12 @@ router.get('/admin/all', auth, adminAuth, [
 
     const total = await Report.countDocuments(filter);
 
-    // Get summary statistics
     const stats = await Report.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
+      { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
     const statusStats = {};
-    stats.forEach(stat => {
-      statusStats[stat._id] = stat.count;
-    });
+    stats.forEach(stat => { statusStats[stat._id] = stat.count; });
 
     res.json({
       reports,
@@ -341,21 +283,14 @@ router.patch('/admin/:id', auth, adminAuth, [
   body('status').isIn(['investigating', 'resolved', 'dismissed']),
   body('adminNotes').optional().trim().isLength({ max: 1000 }),
   body('actionTaken').optional().isIn([
-    'none',
-    'warning_sent',
-    'content_removed',
-    'user_suspended',
-    'user_banned',
-    'other'
+    'none', 'warning_sent', 'content_removed',
+    'user_suspended', 'user_banned', 'other'
   ])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ 
-        message: 'Шалгалт амжилтгүй', 
-        errors: errors.array() 
-      });
+      return res.status(400).json({ message: 'Шалгалт амжилтгүй', errors: errors.array() });
     }
 
     const { id } = req.params;
@@ -369,7 +304,6 @@ router.patch('/admin/:id', auth, adminAuth, [
       return res.status(404).json({ message: 'Гомдол олдсонгүй' });
     }
 
-    // Update report
     report.status = status;
     if (adminNotes) report.adminNotes = adminNotes;
     if (actionTaken) report.actionTaken = actionTaken;
@@ -381,7 +315,6 @@ router.patch('/admin/:id', auth, adminAuth, [
 
     await report.save();
 
-    // Execute actions if needed
     if (actionTaken && report.targetType === 'user') {
       const targetUser = await User.findById(report.targetId);
       if (targetUser) {
@@ -392,14 +325,11 @@ router.patch('/admin/:id', auth, adminAuth, [
                 user: targetUser._id,
                 type: 'warning_sent',
                 title: 'Анхааруулга',
-                message: `Таны үйлдлийн талаар гомдол ирсэн байна. Платформын дүрмийг сахиж ажиллана уу.${adminNotes ? `\n\nТайлбар: ${adminNotes}` : ''}`,
+                message: `Таны үйлдлийн талаар гомдол ирсэн байна.${adminNotes ? `\n\nТайлбар: ${adminNotes}` : ''}`,
                 link: '/notifications'
               });
-            } catch (notificationError) {
-              console.error('Failed to create warning notification:', notificationError);
-            }
+            } catch (e) { console.error(e); }
             break;
-          
           case 'user_suspended':
             targetUser.status = 'suspended';
             await targetUser.save();
@@ -408,14 +338,11 @@ router.patch('/admin/:id', auth, adminAuth, [
                 user: targetUser._id,
                 type: 'account_suspended',
                 title: 'Данс түр хаалттай',
-                message: `Таны данс түр хаагдлаа. Дэлгэрэнгүйг админтай холбогдоно уу.${adminNotes ? `\n\nШалтгаан: ${adminNotes}` : ''}`,
+                message: `Таны данс түр хаагдлаа.${adminNotes ? `\n\nШалтгаан: ${adminNotes}` : ''}`,
                 link: '/notifications'
               });
-            } catch (notificationError) {
-              console.error('Failed to create suspension notification:', notificationError);
-            }
+            } catch (e) { console.error(e); }
             break;
-          
           case 'user_banned':
             targetUser.status = 'banned';
             await targetUser.save();
@@ -427,21 +354,16 @@ router.patch('/admin/:id', auth, adminAuth, [
                 message: `Таны данс бүрмөсөн хаагдлаа.${adminNotes ? `\n\nШалтгаан: ${adminNotes}` : ''}`,
                 link: '/notifications'
               });
-            } catch (notificationError) {
-              console.error('Failed to create ban notification:', notificationError);
-            }
+            } catch (e) { console.error(e); }
             break;
         }
       }
     }
 
-    if (actionTaken === 'content_removed') {
-      if (report.targetType === 'item') {
-        await Item.findByIdAndUpdate(report.targetId, { status: 'removed' });
-      }
+    if (actionTaken === 'content_removed' && report.targetType === 'item') {
+      await Item.findByIdAndUpdate(report.targetId, { status: 'removed' });
     }
 
-    // Notify reporter about resolution
     try {
       const resolutionMessage = status === 'resolved' 
         ? 'Таны гомдол шийдэгдлээ. Арга хэмжээ авлаа.'
@@ -454,16 +376,11 @@ router.patch('/admin/:id', auth, adminAuth, [
         message: `${resolutionMessage}${adminNotes ? `\n\nТайлбар: ${adminNotes}` : ''}`,
         link: '/notifications'
       });
-    } catch (notificationError) {
-      console.error('Failed to create resolution notification:', notificationError);
-    }
+    } catch (e) { console.error(e); }
 
     await report.populate('resolvedBy', 'name');
 
-    res.json({
-      message: 'Гомдол амжилттай шинэчлэгдлээ',
-      report
-    });
+    res.json({ message: 'Гомдол амжилттай шинэчлэгдлээ', report });
   } catch (error) {
     console.error('Update report error:', error);
     res.status(500).json({ message: 'Гомдол шинэчлэх үед серверийн алдаа гарлаа', details: error.message });
@@ -473,42 +390,23 @@ router.patch('/admin/:id', auth, adminAuth, [
 // Admin: Get report statistics
 router.get('/admin/statistics', auth, adminAuth, async (req, res) => {
   try {
-    // Get basic counts
     const totalReports = await Report.countDocuments();
     const pendingReports = await Report.countDocuments({ status: 'pending' });
     const investigatingReports = await Report.countDocuments({ status: 'investigating' });
     const resolvedReports = await Report.countDocuments({ status: 'resolved' });
 
-    // Get reports by type
     const reportsByType = await Report.aggregate([
-      {
-        $group: {
-          _id: '$reportType',
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { count: -1 }
-      }
+      { $group: { _id: '$reportType', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
     ]);
 
-    // Get reports by target type
     const reportsByTarget = await Report.aggregate([
-      {
-        $group: {
-          _id: '$targetType',
-          count: { $sum: 1 }
-        }
-      }
+      { $group: { _id: '$targetType', count: { $sum: 1 } } }
     ]);
 
-    // Get recent reports (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const recentReports = await Report.countDocuments({ 
-      createdAt: { $gte: thirtyDaysAgo } 
-    });
+    const recentReports = await Report.countDocuments({ createdAt: { $gte: thirtyDaysAgo } });
 
-    // Get average resolution time
     const resolvedWithTime = await Report.find({
       status: 'resolved',
       resolvedAt: { $exists: true }
