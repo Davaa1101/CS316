@@ -7,7 +7,7 @@ PORT=3000
 MONGODB_URI=mongodb+srv://Davaa:fJD7O91OlRiRZOWw@cluster0.x6zwbmy.mongodb.net/barter-platform?retryWrites=true&w=majority&appName=Cluster0
 JWT_SECRET=ae1c5bd0e9aaa15a345baff0318123da6e3567c2bdb5a8e222b17249c5f9471992833a1acfea984fb0eaf701c06f2a5c10d61d1c846b8b74bf08a8e6e6c5a175
 JWT_EXPIRES_IN=7d
-FRONTEND_URL=https://cs-316.vercel.app
+FRONTEND_URL=https://b222270037.vercel.app
 UPLOAD_PATH=./uploads
 MAX_FILE_SIZE=5242880
 ```
@@ -30,7 +30,7 @@ Add each variable individually:
 
 ## After adding variables:
 1. Railway will automatically redeploy
-2. Copy your Railway URL (e.g., https://cs316-production.up.railway.app)
+2. Copy your Railway URL (e.g., https://b222270037-production.up.railway.app)
 3. Go to Vercel → Settings → Environment Variables
 4. Update/Add:
    - Name: `REACT_APP_API_BASE`
@@ -40,7 +40,7 @@ Add each variable individually:
 ## Your Configuration:
 ✅ Database: MongoDB Atlas (Cluster0)
 ✅ JWT Secret: Securely generated (128 characters)
-✅ Frontend: https://cs-316.vercel.app
+✅ Frontend: https://b222270037.vercel.app
 ✅ Backend: Will be Railway URL after deployment
 
 ## Security Notes:

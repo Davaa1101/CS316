@@ -1,9 +1,9 @@
-# 🔄 CS316 Barter Platform - Final Project
+# 🔄 B222270037 Barter Platform - Final Project
 
 > Солилцооны цахим платформ - Бараа, үйлчилгээний солилцооны систем
 
-[![Tests](https://github.com/Davaa1101/CS316/actions/workflows/ci.yml/badge.svg)](https://github.com/Davaa1101/CS316/actions)
-[![Deployment](https://img.shields.io/badge/deployment-active-success)](https://cs-316.vercel.app)
+[![Tests](https://github.com/Davaa1101/B222270037/actions/workflows/ci.yml/badge.svg)](https://github.com/Davaa1101/B222270037/actions)
+[![Deployment](https://img.shields.io/badge/deployment-active-success)](https://b222270037.vercel.app)
 
 ## 📋 Агуулга
 
@@ -19,7 +19,7 @@
 
 ## 🎯 Төслийн тухай
 
-**CS316 Barter Platform** нь бараа, үйлчилгээг мөнгөгүйгээр солилцох боломж олгодог цахим платформ юм. Хэрэглэгчид өөрсдийн барааг оруулж, бусдын бараатай солилцох санал илгээж, харилцан тохиролцох боломжтой.
+**B222270037 Barter Platform** нь бараа, үйлчилгээг мөнгөгүйгээр солилцох боломж олгодог цахим платформ юм. Хэрэглэгчид өөрсдийн барааг оруулж, бусдын бараатай солилцох санал илгээж, харилцан тохиролцох боломжтой.
 
 ### Гол боломжууд
 
@@ -99,8 +99,8 @@ npm --version   # v9.0.0 эсвэл дээш
 ### 1. Repository татаж авах
 
 ```bash
-git clone https://github.com/Davaa1101/CS316.git
-cd CS316/my-first-project
+git clone https://github.com/Davaa1101/B222270037.git
+cd B222270037/web-project
 ```
 
 ### 2. Backend суулгах
@@ -242,7 +242,7 @@ cd frontend && npm start
 ### Base URL
 ```
 Development: http://localhost:3000/api
-Production: https://cs316-production.up.railway.app/api
+Production: https://b222270037-production.up.railway.app/api
 ```
 
 ### Vercel Frontend Environment
@@ -399,8 +399,8 @@ Coverage:    78.5%
 
 ### Production URLs
 
-- **Frontend:** https://cs-316.vercel.app
-- **Backend API:** https://cs316-production.up.railway.app
+- **Frontend:** https://b222270037.vercel.app
+- **Backend API:** https://b222270037-production.up.railway.app
 - **Database:** MongoDB Atlas
 
 ### Deployment Process
@@ -429,7 +429,7 @@ railway up
 
 **Vercel (Frontend):**
 ```
-REACT_APP_API_BASE=https://cs316-production.up.railway.app/api
+REACT_APP_API_BASE=https://b222270037-production.up.railway.app/api
 ```
 
 **Railway (Backend):**
@@ -437,7 +437,7 @@ REACT_APP_API_BASE=https://cs316-production.up.railway.app/api
 NODE_ENV=production
 MONGODB_URI=mongodb+srv://...
 JWT_SECRET=...
-FRONTEND_URL=https://cs-316.vercel.app
+FRONTEND_URL=https://b222270037.vercel.app
 PORT=3000
 ```
 
@@ -486,7 +486,7 @@ Header-т `Authorization: Bearer {token}` оруулна.
 
 ## 🔗 Холбоосууд
 
-- [GitHub Repository](https://github.com/Davaa1101/CS316)
-- [Live Demo](https://cs-316.vercel.app)
+- [GitHub Repository](https://github.com/Davaa1101/B222270037)
+- [Live Demo](https://b222270037.vercel.app)
 - [API Documentation](docs/API.md)
 - [Project Report](docs/PROJECT_REPORT.md)

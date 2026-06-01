@@ -61,7 +61,7 @@ async function runFinalCheck() {
   const question = (query) => new Promise(resolve => rl.question(query, resolve));
 
   console.log('\n╔════════════════════════════════════════╗');
-  console.log('║   ЭЦСИЙН КОДЫН ШАЛГАЛТ - CS316        ║');
+  console.log('║   ЭЦСИЙН КОДЫН ШАЛГАЛТ - B222270037   ║');
   console.log('║   Barter Platform Project             ║');
   console.log('╚════════════════════════════════════════╝\n');
 
