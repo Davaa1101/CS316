@@ -49,7 +49,8 @@ app.use(helmet({
       objectSrc: ["'none'"],
       upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
     }
-  }
+  },
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
