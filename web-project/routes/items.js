@@ -225,11 +225,16 @@ router.post('/', auth, upload.array('images', 5), [
 
     const { title, description, category, condition } = req.body;
 
-    // Process uploaded images
-    const images = req.files ? req.files.map(file => ({
-      url: `/uploads/items/${file.filename}`,
-      filename: file.filename
-    })) : [];
+    // Process uploaded images and save public URLs
+    const images = req.files ? req.files.map(file => {
+      const fileUrl = `/uploads/items/${file.filename}`;
+      const backendBase = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+      const publicUrl = `${backendBase.replace(/\/$/, '')}${fileUrl}`;
+      return {
+        url: publicUrl,
+        filename: file.filename
+      };
+    }) : [];
 
     // Reconstruct nested objects from flattened request body
     const location = {
@@ -332,10 +337,12 @@ router.put('/:id', auth, upload.array('newImages', 5), [
 
     // Handle image updates
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map(file => ({
-        url: `/uploads/items/${file.filename}`,
-        filename: file.filename
-      }));
+      const newImages = req.files.map(file => {
+        const fileUrl = `/uploads/items/${file.filename}`;
+        const backendBase = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+        const publicUrl = `${backendBase.replace(/\/$/, '')}${fileUrl}`;
+        return { url: publicUrl, filename: file.filename };
+      });
       
       // Add new images to existing ones (up to 5 total)
       const totalImages = [...item.images, ...newImages];
@@ -343,8 +350,14 @@ router.put('/:id', auth, upload.array('newImages', 5), [
         // Remove oldest images if exceeding limit
         const imagesToRemove = totalImages.slice(0, totalImages.length - 5);
         imagesToRemove.forEach(img => {
-          const filePath = path.join(__dirname, '..', img.url);
-          fs.unlink(filePath, () => {});
+          try {
+            // img.url may be absolute (https://...) or relative (/uploads/...)
+            const urlPath = img.url.startsWith('http') ? new URL(img.url).pathname : img.url;
+            const filePath = path.join(__dirname, '..', urlPath);
+            fs.unlink(filePath, () => {});
+          } catch (e) {
+            // ignore invalid URLs
+          }
         });
         updateFields.images = totalImages.slice(-5);
       } else {
@@ -383,8 +396,13 @@ router.delete('/:id', auth, async (req, res) => {
 
     // Delete associated images
     item.images.forEach(image => {
-      const filePath = path.join(__dirname, '..', image.url);
-      fs.unlink(filePath, () => {});
+      try {
+        const urlPath = image.url.startsWith('http') ? new URL(image.url).pathname : image.url;
+        const filePath = path.join(__dirname, '..', urlPath);
+        fs.unlink(filePath, () => {});
+      } catch (e) {
+        // ignore invalid URL
+      }
     });
 
     await Item.findByIdAndDelete(req.params.id);
