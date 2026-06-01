@@ -21,7 +21,7 @@ const reportRoutes = require('./routes/reports');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-
+app.set('trust proxy', 1);
 // Security middleware with relaxed CSP for development
 app.use(helmet({
   contentSecurityPolicy: {
