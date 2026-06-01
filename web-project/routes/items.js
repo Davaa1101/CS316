@@ -237,7 +237,7 @@ router.post('/', auth, upload.any(), [
 });
 
 // Update item
-router.put('/:id', auth, upload.array('newImages', 5), [
+router.put('/:id', auth, upload.any(), [
   body('title').optional().trim().isLength({ min: 3, max: 100 }),
   body('description').optional().trim().isLength({ min: 10, max: 1000 }),
   body('category').optional().isIn([
