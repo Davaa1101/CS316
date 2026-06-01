@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_BASE } from '../services/api';
 import { Link } from 'react-router-dom';
 
 const ItemCard = ({ item, currentUser, isOwner }) => {
@@ -41,6 +42,19 @@ const ItemCard = ({ item, currentUser, isOwner }) => {
     return text.substr(0, maxLength) + '...';
   };
 
+  const getImageUrl = (imageValue) => {
+    const rawUrl = typeof imageValue === 'string' ? imageValue : (imageValue?.url || imageValue);
+    if (!rawUrl) return '';
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+    if (rawUrl.startsWith('/uploads')) {
+      const apiOrigin = API_BASE.replace(/\/api\/?$/, '');
+      return `${apiOrigin}${rawUrl}`;
+    }
+    return rawUrl;
+  };
+
   return (
     <Link to={`/item/${item._id}`} className="text-decoration-none">
       <div className="card h-100 border-0 item-card" style={{
@@ -64,7 +78,7 @@ const ItemCard = ({ item, currentUser, isOwner }) => {
         {item.images && item.images.length > 0 ? (
           <div className="position-relative" style={{ height: '220px', overflow: 'hidden' }}>
             <img
-              src={typeof item.images[0] === 'string' ? item.images[0] : (item.images[0].url || item.images[0])}
+              src={getImageUrl(item.images[0])}
               alt={item.title}
               className="w-100 h-100"
               style={{

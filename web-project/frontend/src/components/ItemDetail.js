@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { itemService } from '../services/itemService';
+import { API_BASE } from '../services/api';
 import Alert from './Alert';
 
 const ItemDetail = () => {
@@ -32,9 +33,16 @@ const ItemDetail = () => {
   };
 
   const getImageUrl = (image) => {
-    if (typeof image === 'string') return image;
-    if (image && image.url) return image.url;
-    return null;
+    const rawUrl = typeof image === 'string' ? image : image?.url;
+    if (!rawUrl) return null;
+    if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      return rawUrl;
+    }
+    if (rawUrl.startsWith('/uploads')) {
+      const apiOrigin = API_BASE.replace(/\/api\/?$/, '');
+      return `${apiOrigin}${rawUrl}`;
+    }
+    return rawUrl;
   };
 
   const isOwner = user && item && (user.id === item.owner?._id || user._id === item.owner?._id);
