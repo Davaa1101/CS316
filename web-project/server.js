@@ -64,8 +64,13 @@ app.use(cors({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 500,                  // 500 хүсэлт
+  trustProxy: true,
+  skip: (req) => {
+    // GET хүсэлтийг хязгаарлахгүй
+    return req.method === 'GET';
+  }
 });
 app.use('/api', limiter);
 
