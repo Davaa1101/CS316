@@ -32,32 +32,16 @@ router.get('/', [
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
-    // Build filter
     const filter = { status: 'active' };
     
-    if (req.query.category) {
-      filter.category = req.query.category;
-    }
-    
-    if (req.query.city) {
-      filter['location.city'] = new RegExp(req.query.city, 'i');
-    }
-    
-    if (req.query.district) {
-      filter['location.district'] = new RegExp(req.query.district, 'i');
-    }
-    
-    if (req.query.search) {
-      filter.$text = { $search: req.query.search };
-    }
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.city) filter['location.city'] = new RegExp(req.query.city, 'i');
+    if (req.query.district) filter['location.district'] = new RegExp(req.query.district, 'i');
+    if (req.query.search) filter.$text = { $search: req.query.search };
 
-    // Build sort
-    let sort = { createdAt: -1 }; // Default: newest first
-    if (req.query.sort === 'oldest') {
-      sort = { createdAt: 1 };
-    } else if (req.query.sort === 'views') {
-      sort = { views: -1, createdAt: -1 };
-    }
+    let sort = { createdAt: -1 };
+    if (req.query.sort === 'oldest') sort = { createdAt: 1 };
+    else if (req.query.sort === 'views') sort = { views: -1, createdAt: -1 };
 
     const items = await Item.find(filter)
       .populate('owner', 'name location.city location.district profile.rating profile.totalTrades')
@@ -68,15 +52,12 @@ router.get('/', [
 
     const total = await Item.countDocuments(filter);
 
-    // Transform items for frontend compatibility
     const transformedItems = items.map(item => ({
       ...item,
       lookingFor: item.wantedItems?.description || '',
-      // Keep both for backward compatibility
       wantedItems: item.wantedItems
     }));
 
-    // Add favorite status if user is authenticated
     if (req.user) {
       transformedItems.forEach(item => {
         item.isFavorited = item.favorites.includes(req.user.userId);
@@ -99,13 +80,12 @@ router.get('/', [
   }
 });
 
-// Get current user's own items (must come before /:id route)
+// Get current user's own items
 router.get('/my', auth, async (req, res) => {
   try {
     const items = await Item.find({ owner: req.user.userId })
       .sort({ createdAt: -1 })
       .populate('owner', 'name');
-
     res.json(items);
   } catch (error) {
     console.error('Get my items error:', error);
@@ -124,27 +104,22 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ message: 'Зар олдсонгүй' });
     }
 
-    // Increment view count (only if not owner)
     if (!req.user || req.user.userId.toString() !== item.owner._id.toString()) {
       await Item.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } });
       item.views += 1;
     }
 
-    // Transform item for frontend compatibility
     const transformedItem = {
       ...item,
       lookingFor: item.wantedItems?.description || '',
-      // Keep both for backward compatibility
       wantedItems: item.wantedItems
     };
 
-    // Add favorite status if user is authenticated
     if (req.user) {
       transformedItem.isFavorited = transformedItem.favorites.includes(req.user.userId);
       transformedItem.canContact = req.user.userId.toString() !== transformedItem.owner._id.toString();
     } else {
       transformedItem.canContact = false;
-      // Hide owner contact info for guests
       delete transformedItem.owner.phone;
     }
 
@@ -175,12 +150,6 @@ router.post('/', auth, upload.any(), [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      // Delete uploaded files if validation fails
-      if (req.files) {
-        req.files.forEach(file => {
-          fs.unlink(file.path, () => {});
-        });
-      }
       return res.status(400).json({ 
         message: 'Шалгалт амжилтгүй', 
         errors: errors.array() 
@@ -189,13 +158,12 @@ router.post('/', auth, upload.any(), [
 
     const { title, description, category, condition } = req.body;
 
-    // Process uploaded images and save public URLs
+    // Cloudinary URL — file.path
     const images = req.files ? req.files.map(file => ({
-  url: file.path,         // Cloudinary URL
-  filename: file.filename
-})) : [];
+      url: file.path,
+      filename: file.filename
+    })) : [];
 
-    // Reconstruct nested objects from flattened request body
     const location = {
       city: req.body['location.city'],
       district: req.body['location.district']
@@ -203,7 +171,9 @@ router.post('/', auth, upload.any(), [
 
     const wantedItems = {
       description: req.body['wantedItems.description'],
-      categories: req.body['wantedItems.categories'] ? JSON.parse(req.body['wantedItems.categories']) : []
+      categories: req.body['wantedItems.categories'] 
+        ? JSON.parse(req.body['wantedItems.categories']) 
+        : []
     };
 
     const item = new Item({
@@ -226,12 +196,6 @@ router.post('/', auth, upload.any(), [
     });
   } catch (error) {
     console.error('Create item error:', error);
-    // Clean up uploaded files
-    if (req.files) {
-      req.files.forEach(file => {
-        fs.unlink(file.path, () => {});
-      });
-    }
     res.status(500).json({ message: 'Зар үүсгэх үед серверийн алдаа гарлаа', details: error.message });
   }
 });
@@ -261,22 +225,16 @@ router.put('/:id', auth, upload.any(), [
       return res.status(404).json({ message: 'Зар олдсонгүй' });
     }
 
-    // Check ownership
     if (item.owner.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Энэ зарыг шинэчлэх эрхгүй' });
     }
 
-    // Update fields
     const updateFields = {};
     const allowedFields = ['title', 'description', 'category', 'condition'];
-    
     allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        updateFields[field] = req.body[field];
-      }
+      if (req.body[field] !== undefined) updateFields[field] = req.body[field];
     });
 
-    // Handle nested location object
     if (req.body['location.city'] || req.body['location.district']) {
       updateFields.location = {
         city: req.body['location.city'] || item.location.city,
@@ -284,42 +242,22 @@ router.put('/:id', auth, upload.any(), [
       };
     }
 
-    // Handle nested wantedItems object
     if (req.body['wantedItems.description'] || req.body['wantedItems.categories']) {
       updateFields.wantedItems = {
         description: req.body['wantedItems.description'] || item.wantedItems.description,
-        categories: req.body['wantedItems.categories'] ? 
-          JSON.parse(req.body['wantedItems.categories']) : 
-          item.wantedItems.categories
+        categories: req.body['wantedItems.categories'] 
+          ? JSON.parse(req.body['wantedItems.categories']) 
+          : item.wantedItems.categories
       };
     }
 
-    // Handle image updates
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map(file => ({
-  url: file.path,
-  filename: file.filename
-}));
-      
-      // Add new images to existing ones (up to 5 total)
+        url: file.path,
+        filename: file.filename
+      }));
       const totalImages = [...item.images, ...newImages];
-      if (totalImages.length > 5) {
-        // Remove oldest images if exceeding limit
-        const imagesToRemove = totalImages.slice(0, totalImages.length - 5);
-        imagesToRemove.forEach(img => {
-          try {
-            // img.url may be absolute (https://...) or relative (/uploads/...)
-            const urlPath = img.url.startsWith('http') ? new URL(img.url).pathname : img.url;
-            const filePath = path.join(__dirname, '..', urlPath);
-            fs.unlink(filePath, () => {});
-          } catch (e) {
-            // ignore invalid URLs
-          }
-        });
-        updateFields.images = totalImages.slice(-5);
-      } else {
-        updateFields.images = totalImages;
-      }
+      updateFields.images = totalImages.slice(-5);
     }
 
     const updatedItem = await Item.findByIdAndUpdate(
@@ -346,15 +284,11 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Зар олдсонгүй' });
     }
 
-    // Check ownership
     if (item.owner.toString() !== req.user.userId) {
       return res.status(403).json({ message: 'Энэ зарыг устгах эрхгүй' });
     }
 
-
-
     await Item.findByIdAndDelete(req.params.id);
-
     res.json({ message: 'Зар амжилттай устгагдлаа' });
   } catch (error) {
     console.error('Delete item error:', error);
@@ -380,7 +314,6 @@ router.post('/:id/favorite', auth, async (req, res) => {
     }
 
     await item.save();
-
     res.json({
       message: isFavorited ? 'Дуртайгаас хасагдлаа' : 'Дуртайд нэмэгдлээ',
       isFavorited: !isFavorited
@@ -426,9 +359,7 @@ router.get('/config/categories', async (req, res) => {
     const categories = await Category.find({ isActive: true })
       .sort({ sortOrder: 1, name: 1 })
       .select('name displayName sortOrder icon');
-    
-    
-    // Format for frontend
+
     const formattedCategories = categories.map(cat => ({
       value: cat.name,
       label: cat.displayName,
@@ -440,8 +371,7 @@ router.get('/config/categories', async (req, res) => {
     console.error('Get categories error:', error);
     res.status(500).json({ 
       error: 'Ангиллуудыг татахад алдаа гарлаа',
-      message: error.message,
-      details: error.message
+      message: error.message 
     });
   }
 });
