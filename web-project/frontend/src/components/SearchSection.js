@@ -143,7 +143,7 @@ const SearchSection = ({ onSearch, loading, compact = false }) => {
               className="btn btn-primary px-4"
               disabled={loading}
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
                 border: 'none',
                 borderRadius: '25px'
               }}
@@ -177,7 +177,7 @@ const SearchSection = ({ onSearch, loading, compact = false }) => {
           <div className={`card border-0 ${compact ? 'search-modal-card' : ''}`} style={{ boxShadow: '0 10px 25px rgba(0, 0, 0, 0.06)', borderRadius: '15px', overflow: 'hidden' }}>
             {!compact && (
               <div className="card-header border-0" style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
                 color: 'white',
                 padding: '1rem 1.5rem'
               }}>
@@ -279,7 +279,7 @@ const SearchSection = ({ onSearch, loading, compact = false }) => {
                         className="btn btn-primary px-4"
                         disabled={loading}
                         style={{
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
                           border: 'none',
                           borderRadius: '25px'
                         }}

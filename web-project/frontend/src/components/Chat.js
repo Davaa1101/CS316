@@ -175,7 +175,7 @@ const Chat = () => {
       <div className="card border-0 shadow-sm h-100 d-flex flex-column" style={{ borderRadius: '20px' }}>
         {/* Chat Header */}
         <div className="card-header border-0" style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
           color: 'white',
           padding: '1rem 1.5rem',
           borderRadius: '20px 20px 0 0'
@@ -280,7 +280,7 @@ const Chat = () => {
                 className="btn text-white ms-2"
                 disabled={sending || !newMessage.trim()}
                 style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
                   border: 'none',
                   borderRadius: '15px',
                   minWidth: '100px'

@@ -94,7 +94,7 @@ const Signup = () => {
 
   return (
     <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
       padding: '40px 20px'
     }}>
       <div className="card border-0" style={{ 
@@ -104,7 +104,7 @@ const Signup = () => {
         boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15)'
       }}>
         <div className="card-header text-center border-0" style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
           color: 'white',
           borderRadius: '25px 25px 0 0',
           padding: '2.5rem 2rem'

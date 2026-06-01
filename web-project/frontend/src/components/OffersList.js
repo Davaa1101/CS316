@@ -371,7 +371,7 @@ const OffersList = () => {
         <div className="modal show d-block" style={{ background: 'rgba(0,0,0,0.55)' }}>
           <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content" style={{ borderRadius: '22px', overflow: 'hidden' }}>
-              <div className="modal-header border-0" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+              <div className="modal-header border-0" style={{ background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)', color: 'white' }}>
                 <div>
                   <h5 className="modal-title mb-1">Саналын дэлгэрэнгүй</h5>
                   <small className="opacity-75">{selectedOffer.item?.title}</small>

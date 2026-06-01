@@ -132,7 +132,7 @@ const MakeOffer = () => {
       
       <div className="card border-0 shadow-sm" style={{ borderRadius: '20px' }}>
         <div className="card-header border-0" style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
           color: 'white',
           padding: '1.5rem',
           borderRadius: '20px 20px 0 0'
@@ -298,7 +298,7 @@ const MakeOffer = () => {
                 className="btn text-white"
                 disabled={loading}
                 style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, #1f6f43 0%, #2c7a7b 62%, #c79a2a 100%)',
                   border: 'none',
                   borderRadius: '10px'
                 }}
