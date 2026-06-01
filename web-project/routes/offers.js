@@ -16,7 +16,7 @@ const createNotification = async ({ user, type, title, message, link = '', offer
 const upload = createUpload('offers');
 
 // Create new offer
-router.post('/', auth, upload.array('images', 10), [
+router.post('/', auth, upload.any(), [
   body('itemId').isMongoId(),
   body('message').optional().trim().isLength({ max: 500 }),
   body('offeredItems').custom((value) => {

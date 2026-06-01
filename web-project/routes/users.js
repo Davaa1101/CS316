@@ -25,7 +25,7 @@ router.get('/profile', auth, async (req, res) => {
 });
 
 // Update user profile
-router.put('/profile', auth, upload.single('avatar'), [
+router.put('/profile', auth, upload.any(), [
   body('name').optional().trim().isLength({ min: 2, max: 50 }),
   body('phone').optional().isMobilePhone(),
   body('location.city').optional().trim().isLength({ min: 1 }),

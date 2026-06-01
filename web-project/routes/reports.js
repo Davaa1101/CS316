@@ -17,7 +17,7 @@ const createNotification = async ({ user, type, title, message, link = '', offer
 const upload = createUpload('reports');
 
 // Create new report
-router.post('/', auth, upload.array('evidence', 5), [
+router.post('/', auth, upload.any(), [
   body('reportType').isIn([
     'fraudulent_behavior',
     'inappropriate_content',

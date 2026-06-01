@@ -159,7 +159,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // Create new item
-router.post('/', auth, upload.array('images', 5), [
+router.post('/', auth, upload.any(), [
   body('title').trim().isLength({ min: 3, max: 100 }),
   body('description').trim().isLength({ min: 10, max: 1000 }),
   body('category').isIn([
